@@ -151,7 +151,9 @@ class MemgraphIngestor:
                 f"MERGE (n:{label} {{{id_key}: row.{id_key}}}) "
                 f"ON CREATE SET {set_clause} ON MATCH SET {set_clause}"
             )
-            self._execute_batch(query, props_list)
+            for i in range(0, len(props_list), self.batch_size):
+                chunk = props_list[i:i + self.batch_size]
+                self._execute_batch(query, chunk)
         logger.info(f"Flushed {len(self.node_buffer)} nodes.")
         self.node_buffer.clear()
 

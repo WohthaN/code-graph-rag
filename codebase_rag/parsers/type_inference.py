@@ -414,9 +414,12 @@ class TypeInferenceEngine:
         return None
 
     def _analyze_self_assignments(
-        self, node: Node, local_var_types: dict[str, str], module_qn: str
+        self, node: Node, local_var_types: dict[str, str], module_qn: str, depth: int = 0
     ) -> None:
         """Analyze assignments to self.attribute to determine instance variable types."""
+        MAX_DEPTH = 100
+        if depth >= MAX_DEPTH:
+            return
         # Traverse the AST looking for assignment statements
         if node.type == "assignment":
             left_node = node.child_by_field_name("left")
@@ -442,7 +445,7 @@ class TypeInferenceEngine:
 
         # Recursively traverse children
         for child in node.children:
-            self._analyze_self_assignments(child, local_var_types, module_qn)
+            self._analyze_self_assignments(child, local_var_types, module_qn, depth + 1)
 
     def _infer_variable_element_type(
         self, var_name: str, local_var_types: dict[str, str], module_qn: str
@@ -988,7 +991,7 @@ class TypeInferenceEngine:
 
         except Exception as e:
             logger.debug(
-                f"Failed to analyze instance variables for {attribute_name}: {e}"
+                f"Failed to analyze instance variables for {attribute_name} {module_qn}: {e}"
             )
 
         # Fallback to heuristic-based inference

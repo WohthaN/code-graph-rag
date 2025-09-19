@@ -334,7 +334,7 @@ class TypeInferenceEngine:
     ) -> None:
         """Infer types for instance variables by analyzing assignments."""
         # Look for assignments like self.repo = Repository() in the current method
-        self._analyze_self_assignments(caller_node, local_var_types, module_qn)
+        self._analyze_self_assignments(caller_node, local_var_types, module_qn, 0)
 
         # Also look for instance variable assignments in the class's __init__ method
         self._analyze_class_init_assignments(caller_node, local_var_types, module_qn)
@@ -357,7 +357,7 @@ class TypeInferenceEngine:
 
         logger.debug("Found __init__ method, analyzing self assignments...")
         # Analyze self assignments in the __init__ method
-        self._analyze_self_assignments(init_method, local_var_types, module_qn)
+        self._analyze_self_assignments(init_method, local_var_types, module_qn, 0)
 
     def _find_containing_class(self, method_node: Node) -> Node | None:
         """Find the class node that contains the given method node."""
@@ -890,7 +890,7 @@ class TypeInferenceEngine:
             method_name = parts[-1]  # Last part is the method name
 
             # Try to infer the type of self.attribute
-            attribute_type = self._infer_attribute_type(attribute_name, module_qn)
+            attribute_type = self._infer_attribute_type(attribute_name, module_qn, depth + 1)
             if attribute_type:
                 return self._resolve_class_method(
                     attribute_type, method_name, module_qn
@@ -953,8 +953,11 @@ class TypeInferenceEngine:
 
         return None
 
-    def _infer_attribute_type(self, attribute_name: str, module_qn: str) -> str | None:
+    def _infer_attribute_type(self, attribute_name: str, module_qn: str, depth: int = 0) -> str | None:
         """Infer the type of an instance attribute like self.manager."""
+        MAX_DEPTH = 100
+        if depth >= MAX_DEPTH:
+            return None
         # Extract the class name from the module_qn
         # module_qn looks like "project.services.user_service" and we need the class context
         # This is challenging because we don't know which class we're currently analyzing
